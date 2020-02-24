@@ -6,6 +6,9 @@
 #    Installs the pre-reqs for running My Damn Budget
 # --------------------------------------------------------
 
+scriptRC=0
+startTime=$(date +%s)
+webRoot="/home/vagrant/code/"
 
 # Let the user know how to actually use this script
 print_usage() 
@@ -70,7 +73,6 @@ setup_apache ()
     # Enable php 7.2 for apache
     silent a2enmod php7.2 || rc=$((rc+1))
     # Enable rewrite module
-
     silent a2enmod rewrite || rc=$((rc+1))
     silent a2enconf php7.2-fpm || rc=$((rc+1))
     
@@ -80,5 +82,36 @@ setup_apache ()
     # Restart apache
     silent service apache2 restart || rc=$((rc+1))
 
+    silent cp "apache_virtualhost.template" "/etc/apache2/sites-available/mydamnbudget.conf" || rc=$((rc+1))
+    silent sed -i "s@WEB_ROOT@$webRoot@" "/etc/apache2/sites-available/api.conf" || rc=$((rc+1))
+
+    silent a2ensite "mydamnbudget" || rc=$((rc+1))
+
     echo "$rc"
 }
+
+echo "Installing required PHP components."
+scriptRC=$(install_php)
+if [ "$scriptRC" -eq 0 ]; then
+    echo "Installing composer."
+    scriptRC=$(install_composer)
+    if [ "$scriptRC" -eq 0 ]; then
+        echo "Configuring Apache2."
+        scriptRC=$(setup_apache)
+        if [ "$scriptRC" -eq 0 ]; then
+            echo "Setting up the pre-requisites was successful."
+        else
+            echo "Configuring apache failed."
+        fi
+    else
+        echo "Installing composer failed."
+    fi
+else
+    echo "Installing PHP failed."
+fi
+
+endTime=$(date +%s)
+runTime=$((endTime-startTime))
+
+echo "Script execution completed in $runTime seconds with a return code of $scriptRC."
+exit "$scriptRC"
