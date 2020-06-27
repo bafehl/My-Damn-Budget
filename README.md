@@ -1,2 +1,3 @@
-# IHAB
-Easy to use personal budgeting application
+# My Damn Budget
+
+A self-hosted, open-source budgeting tool.
